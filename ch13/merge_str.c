@@ -17,7 +17,7 @@ int merge_str(char* dst, int dst_size, char* str){
         return -1;
 
     int i,j;
-    for(i=0; dst[i] != '\0'; i++){}
+    for(i=0; i < dst_size -1 && dst[i] != '\0'; i++){}
 
     for(j=0; i<dst_size -1 && str[j] != '\0'; i++,j++){
         dst[i] = str[j];
