@@ -1,9 +1,28 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": []
-
-    
+    "configurations": [
+        {
+            "name": "C/C++ Debug (GDB)",
+            "type": "cppdbg",
+            "request": "launch",
+            // tasks.json의 -o 옵션 경로와 단호하게 일치해야 합니다.
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            // tasks.json의 label 이름과 정확히 일치해야 빌드 후 디버깅이 시작됩니다.
+            "preLaunchTask": "C/C++: gcc build active file",
+            "miDebuggerPath": "/usr/bin/gdb" // GDB 경로가 다르면 수정이 필요할 수 있습니다.
+        }
+    ]
 }
