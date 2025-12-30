@@ -1,14 +1,17 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdbool.h>
+#include<stdlib.h>
+#include<errno.h>
 
 #define SIZE 100
 #define MAX_OF_CONTENT 30
 
-
+bool check_info(char** p, char* pinput, int size);
+void safety_input(char* p);
+int safety_input_num();
 void return_book(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_possible);
 void borrow_book(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_possible);
-//void view_books(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_possible);
 void view_books(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_possible);
 void add_book(char** ptitle, char** pauthor, char** ppublisher, int* plen_books, 
     char (*pttmp)[MAX_OF_CONTENT], char (*patmp)[MAX_OF_CONTENT], char (*pptmp)[MAX_OF_CONTENT], int* pborrow_possible);
@@ -37,19 +40,42 @@ int main(){
     char** pauthor = author;
     char** ppublisher = publisher;
 
-    // view_books(ptitle, pauthor, ppublisher, pborrow_possilble);
-
- 
     int len_book = len_books(ptitle);
-    // add_book(ptitle, pauthor, ppublisher, &len_book, pttmp, patmp, pptmp, pborrow_possilble);
 
-    // view_books(ptitle, pauthor, ppublisher, pborrow_possilble);
-    // find_as_title(ptitle, pauthor, ppublisher, pborrow_possilble); 
+    puts("======== 도서관에 오신 것을 환영합니다 ========");
+    while(1){
+        puts("[1] : 도서 검색\t[2] : 도서 추가\t[3] : 도서 대출\t[4] : 도서 반납\t[5] : 책 리스트\t[6] : 종료");
+        printf("선택 : ");
+        int input = safety_input_num();
+
+        switch(input){
+            case 1: find(ptitle, pauthor, ppublisher, pborrow_possilble); break;
+            case 2 : add_book(ptitle, pauthor, ppublisher, &len_book, pttmp, patmp, pptmp, pborrow_possilble); break;
+            case 3 : borrow_book(ptitle, pauthor, ppublisher, pborrow_possilble); break;
+            case 4 : return_book(ptitle, pauthor, ppublisher, pborrow_possilble); break;
+            case 5 : view_books(ptitle, pauthor, ppublisher, pborrow_possilble);
+            default : break;
+        }
+        if(input == 6)
+            break;
+    }
  
-    borrow_book(ptitle, pauthor, ppublisher, pborrow_possilble);
-    view_books(ptitle, pauthor, ppublisher, pborrow_possilble);
+    
    
     return 0;
+}
+
+void safety_input(char* p){
+    if(fgets(p, sizeof(p), stdin) == NULL) return;
+    
+    if(strchr(p, '\n') == NULL && strlen(p) == sizeof(p) -1){
+        int c;
+        while((c = getchar()) != '\n' && c != EOF);
+    }
+
+    p[strcspn(p,"\n")] = '\0';
+
+    return;
 }
 
 void add_book(char** ptitle, char** pauthor, char** ppublisher, int* plen_books, 
@@ -61,20 +87,20 @@ void add_book(char** ptitle, char** pauthor, char** ppublisher, int* plen_books,
     if(*plen_books>=SIZE){
         return;
     }
+    char* pt = pttmp[*plen_books];
+    char* pa = patmp[*plen_books];
+    char* pp = pptmp[*plen_books];
 
     printf("책 제목을 입력하세요 : ");
-    fscanf(stdin, "%29[^\n]s", pttmp[*plen_books]);
-    getchar();
-    
+    safety_input(pt);
+
     printf("저자 이름을 입력하세요 : ");
-    fscanf(stdin, "%29[^\n]s", patmp[*plen_books]);
-    getchar();
-    
+    safety_input(pa);
+
     printf("출판사 이름을 입력하세요 : ");
-    fscanf(stdin, "%29[^\n]s", pptmp[*plen_books]);
-    getchar();
-
-
+    safety_input(pp);
+    
+    
     int len = (*plen_books);
     // (*ptitle)[len]= pttmp[len];
     // (*pauthor)[len] = patmp[len];
@@ -139,41 +165,78 @@ void find(char** ptitle, char** pauthor, char** ppublisher,int* pborrow_possible
     }
     char **pselect;
 
-    char tmp[30];
+    
     int ch;
-    printf("[1] : 책으로 검색\n[2] : 저자로 검색\n[3] : 출판사로 검색\n입 력 : ");
-    ch = fgetc(stdin);
-    if('1' == (char)ch){
-        pselect = ptitle;
-        printf("책 제목을 입력하세요 : ");
-    }else if('2' == (char)ch){
-        pselect = pauthor;
-        printf("저자 이름을 입력하세요 : ");
-    }else if('3' == (char)ch){
-        pselect = ppublisher;
-        printf("출판사를 입력하세요 : ");
-    }else{
+   
+    char tmp[30];
+    char* p = tmp;
+    
+    
+    printf("[1] : 제목으로 검색\n[2] : 저자로 검색\n[3] : 출판사로 검색\n");
+    do{
+    
+        printf("입력 : ");
+        ch = safety_input_num();
+        if(ch<1 || ch >3){
+            puts("옵션을 잘 선택하세요");
+        }
+    }while(ch<1 || ch >3);
+    
+
+    if(ch == -1){
         return;
     }
-    getchar();
     
-    fscanf(stdin, "%29[^\n]s", tmp);
+    if(ch<=0 || ch>=4)
+        return;
+    do{
+        if(1 == ch){
+            pselect = ptitle;
+            printf("책 제목을 입력하세요 : ");
+        }else if(2 == ch){
+            pselect = pauthor;
+            printf("저자 이름을 입력하세요 : ");
+        }else if(3 == ch){
+            pselect = ppublisher;
+            printf("출판사를 입력하세요 : ");
+        }else{
+            return;
+        }
+    
+        safety_input(p);
 
+        int length = len_books(ptitle);
+        if(!check_info(pselect, p, length)){
+            puts("검색 결과가 없습니다.");
+        }
+    }while(!check_info(pselect,p,length));
+
+    puts("=============================================================================================================================");
     for(int i=0; i<length; i++){
         if(compare_str(tmp, pselect[i])){
             printf("[%d]\t", i+1);
             printf("제목 : %s\t", ptitle[i]);
             printf("저자 : %s\t", pauthor[i]);
             printf("출판사 : %s\t", ppublisher[i]);
-            pborrow_possible[i] == 1 ? printf("대출 가능") : printf("대출 불가능");
-            putchar('\n');        
+            pborrow_possible[i] == 1 ? printf("대출 가능\n") : printf("대출 불가능\n");
         }
     };
 
-    getchar();
+    puts("=============================================================================================================================");
     return;
     
 
+}
+bool check_info(char** p, char* pinput, int size){
+    int cnt = 0;
+
+    for(int i=0; i<size; i++){
+        if(compare_str(p[i], pinput)){
+            cnt++;
+        }
+    }
+
+    return cnt != 0 ? true : false;
 }
 
 int compare_str(char* str1, char* str2){
@@ -192,6 +255,8 @@ int compare_str(char* str1, char* str2){
             if(*str1 != *str2){
                 return 0;
             }
+            str1++;
+            str2++;
         }
         return 1;
     }else{
@@ -199,40 +264,23 @@ int compare_str(char* str1, char* str2){
     }
 
 }
+int safety_input_num(){
+    int num;
+    char* endPtr;
+    char buf[5];
 
-void borrow_book(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_possible){
-    if(ptitle == NULL || pauthor == NULL || ppublisher == NULL || pborrow_possible == NULL){
-        return;
+    if(fgets(buf, sizeof(buf), stdin) == NULL) return -1;
+    num = strtol(buf, &endPtr, 10);
+
+    if(strchr(buf, '\n') == NULL && strlen(buf) == sizeof(buf) -1){
+        int c;
+        while((c = getchar()) != '\n' && c != EOF);
     }
 
-    find(ptitle, pauthor, ppublisher, pborrow_possible);
-    int idx;
-    
-    do{
-        printf("대출할 책의 번호를 입력하세요 : ");
-        idx = fgetc(stdin);
-        idx = idx - '0' - 1;
-        getchar();
-        if(pborrow_possible[idx] == 0){
-            puts("이 책을 대출 할 수 없습니다!");
-        }
-    }while((idx >= 0 && idx<= strlen(ptitle))&& pborrow_possible[idx] == 0);
-    
+    return num;
+}
 
-    printf("===== 대출 할 책의 정보 =====\n");
-    printf("제 목 : %s\n", ptitle[idx]);
-    printf("저 자 : %s\n", pauthor[idx]);
-    printf("출판사 : %s\n", ppublisher[idx]);
-    printf("==========================\n");
-
-    printf("대출 하시겠습니까?\n[1] : 예\n[2] : 아니요\n입 력 : ");
-    int ch2;
-    ch2 = fgetc(stdin);
-    getchar();
-    if('1'==ch2) pborrow_possible[idx] = 0;
-    
-    return; 
-
+void borrow_book(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_possible){
 }
 
 
@@ -241,17 +289,18 @@ void return_book(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_
         return;
     }
 
+    puts("===== 반납할 책 검색 =====");
     find(ptitle, pauthor, ppublisher, pborrow_possible);
     int idx;
-; 
+    
     do{
         printf("반납할 책의 번호를 입력하세요 : ");
-        idx = fgetc(stdin);
-        getchar();
-        if(idx + 1 < 1 || idx + 1 > strlen(ptitle)){
+        idx = safety_input_num() - 1;
+
+        if(idx < 0 || idx >= len_books(ptitle)){
             printf("%d번 책의 정보가 없습니다.\n", idx + 1);
         }
-    }while(idx + 1 < 1 || idx + 1 > strlen(ptitle));
+    }while(idx < 0 || idx >= len_books(ptitle));
     
 
     printf("===== 반납 할 책의 정보 =====\n");
@@ -263,7 +312,7 @@ void return_book(char** ptitle, char** pauthor, char** ppublisher, int* pborrow_
     printf("반납 하시겠습니까?\n[1] : 예\n[2] : 아니요\n입 력 : ");
     int ch2;
     ch2 = fgetc(stdin);
-    getchar();
+    while(getchar() != '\n');
     if('1'==ch2) pborrow_possible[idx] = 1;
     
     return;
