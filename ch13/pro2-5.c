@@ -20,7 +20,16 @@ int len_books(char** ptitle);
 int compare_str(char* str1, char* str2);
 
 int main(){
-    
+    /*===============================================================================================*/ 
+    //1. 배열을 초기화 하지않고 사용해서 지금 11부터는 무슨값이 있을지 모름
+    //
+    //
+    //2. safety_input에서 sizeof(p)를 하는데 p는 포인터임
+    //
+    //
+    //
+    //
+    /*===============================================================================================*/ 
     char* title[SIZE] = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"};
     char* author[SIZE] = {"jenny", "jenny", "peter", "peter", "kenny", "kenny", "ben", "ben", "john", "john"};
     char* publisher[SIZE] = {"A", "A", "B", "B", "C", "C", "D","D", "E", "E"}; 
@@ -66,13 +75,13 @@ int main(){
 }
 
 void safety_input(char* p){
-    if(fgets(p, sizeof(p), stdin) == NULL) return;
+    if(fgets(p, MAX_OF_CONTENT, stdin) == NULL) return;
     
-    if(strchr(p, '\n') == NULL && strlen(p) == sizeof(p) -1){
+    if(strchr(p, '\n') == NULL && strlen(p) == MAX_OF_CONTENT -1){
         int c;
         while((c = getchar()) != '\n' && c != EOF);
-    }
 
+    }
     p[strcspn(p,"\n")] = '\0';
 
     return;
