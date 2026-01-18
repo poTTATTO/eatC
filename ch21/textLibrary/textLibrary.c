@@ -174,23 +174,22 @@ void find(struct Book* ptr, int count, int struct_size){
     
     if(ch<=0 || ch>=4)
         return;
-    do{
-        if(1 == ch){
-            printf("책 제목을 입력하세요 : "); 
-        }else if(2 == ch){
-            printf("저자 이름을 입력하세요 : ");
-        }else if(3 == ch){
-            printf("출판사를 입력하세요 : ");
-        }else{
-            return;
-        }
     
-        safety_input(p);
+    if(1 == ch){
+        printf("책 제목을 입력하세요 : "); 
+    }else if(2 == ch){
+        printf("저자 이름을 입력하세요 : ");
+    }else if(3 == ch){
+        printf("출판사를 입력하세요 : ");
+    }else{
+        return;
+    }
 
-        if(!check_info(ptr, p, count, ch)){
-            puts("검색 결과가 없습니다.");
-        }
-    }while(!check_info(ptr, p,count, ch));
+    safety_input(p);
+
+    if(!check_info(ptr, p, count, ch)){
+        puts("검색 결과가 없습니다.");
+    }
 
     puts("=============================================================================================================================");
     for(int i=0; i<count; i++){

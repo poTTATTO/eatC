@@ -4,7 +4,6 @@
 #include<stdlib.h>
 #include<errno.h>
 
-#define SIZE 100
 #define MAX_OF_CONTENT 30
 
 typedef struct Book{
@@ -16,96 +15,119 @@ typedef struct Book{
 }Book;
 
 typedef struct{
-    char signature[4];
+    char signature[5];
     int version;
     long data_count;
     size_t record_size;
     char reserved[32];
 }FileHeader;
 
-bool check_info(struct Book* ptmp, char* pinput, int size, int ch);
+bool check_info(Book* ptmp, FILE* fp, char* pinput, int size, int ch);
 void safety_input(char* p);
 int safety_input_num();
-void return_book(struct Book* ptmp, int* pcount, int struct_size);
-void borrow_book(struct Book* ptmp, int* pcount,int struct_size);
-void view_books(struct Book* ptmp, int count);
-void add_book(struct Book* ptmp, FILE* fp, int* pcount, int* p_struct_size);
-void find(struct Book* ptmp, FILE* fp, int count, int struct_size);
-// int len_books(struct Book* ptr);
+void return_book(Book* ptmp, FILE* fp, int* pcount);
+void borrow_book(Book* ptmp, FILE* fp, int* pcount);
+void view_books(Book* ptmp,FILE* fp, int* pcount);
+void add_book(Book* ptmp, FileHeader* header, FILE* fp, int* pcount);
+void find(Book* ptmp, FILE* fp, int* pcount);
 int compare_str(char* str1, char* str2);
 void copy_str(char* dst, char* src);
-
+int check_file_length(FILE* fp);
+void print_header(FILE* fp, FileHeader* header);
+void init_header(FILE* fp,FileHeader* fileheader);
 int main(){
 
-    Book tmp;   
-    Book* ptmp = &tmp;
-    int current_count = 0; // 구체는 배열처럼 '\0'가 없어서 따로 변수를 둬야함
-    int* pcount = &current_count;
-    int struct_size = sizeof(tmp);
-    int* p_struct_size = &struct_size;
-
-    FILE* fp = fopen("list.bin", "r+");
-    FileHeader fileheader;
-    memcpy(fileheader.signature, "MYDB", sizeof("MYDB")-1);
-    fileheader.data_count = 0;
-    fileheader.version = 1;
-    fileheader.record_size= struct_size; 
-    memcpy(fileheader.reserved, "none", sizeof("none")-1);
-
-    fwrite(&fileheader, sizeof(fileheader), 1, fp);
-    add_book(ptmp, fp, pcount, p_struct_size);
-
-
     
-    FileHeader tmp2;
+    FileHeader fileheader={0};
+    FileHeader* pheader = &fileheader;
 
+    FILE* fp = fopen("list.bin", "rb+");
+    if(fp==NULL){
+        fp = fopen("list.bin","wb+");
+    }
+    Book tmp = {0};   
+    Book* ptmp = &tmp;
+    if(!fseek(fp, 0, SEEK_END) && ftell(fp) == 0){
+        init_header(fp, pheader);
+    }else{
+        rewind(fp);
+        fread(pheader, sizeof(FileHeader), 1, fp);
+    }
+
+    int current_count = check_file_length(fp); // 구체는 배열처럼 '\0'가 없어서 따로 변수를 둬야함
+    int* pcount = &current_count;
+    
     fseek(fp, 0, SEEK_SET);
-    fread(&tmp2, sizeof(tmp2), 1, fp);
-    printf("signature : %s\n",tmp2.signature);
-    printf("data_count : %ld\n", tmp2.data_count);
-    printf("version : %d\n", tmp2.version);
-    printf("record_size : %zu\n", tmp2.record_size);
-    printf("reserved : %s\n", tmp2.reserved);
-
-    fread(ptmp, sizeof(tmp), 1, fp);
-
-// typedef struct Book{
-//     long number;
-//     char name[30];
-//     char author[30];
-//     char publisher[30];
-//     int borrowed;
-// }Book;
-
-    printf("number : %ld\n", ptmp->number);
-    printf("name : %s\n", ptmp->name);
-    printf("author : %s\n", ptmp->author);
-    printf("publisher : %s\n", ptmp->publisher);
-    ptmp->borrowed == 0 ? puts("대출 불가능") : puts("대출 가능");
 
 
-    // puts("======== 도서관에 오신 것을 환영합니다 ========");
-    // while(1){
-    //     puts("[1] : 도서 검색\t[2] : 도서 추가\t[3] : 도서 대출\t[4] : 도서 반납\t[5] : 책 리스트\t[6] : 종료");
-    //     printf("선택 : ");
-    //     int input = safety_input_num();
+    puts("======== 도서관에 오신 것을 환영합니다 ========");
+    while(1){
+        puts("[1] : 도서 검색\t[2] : 도서 추가\t[3] : 도서 대출\t[4] : 도서 반납\t[5] : 책 리스트\t[6] : 헤더\t[7] : 종료");
+        printf("선택 : ");
+        int input = safety_input_num();
 
-    //     switch(input){
-    //         case 1: find(ptr, current_count, sturct_size); break;
-    //         case 2 : add_book(ptr, pcount); break;
-    //         case 3 : borrow_book(ptr, pcount, sturct_size); break;
-    //         case 4 : return_book(ptr, pcount, sturct_size); break;
-    //         case 5 : view_books(ptr, current_count);
-    //         default : break;
-    //     }
-    //     if(input == 6)
-    //         break;
-    // }
+        switch(input){
+            case 1 : find(ptmp, fp, pcount); break;
+            case 2 : add_book(ptmp, pheader, fp, pcount); break;
+            case 3 : borrow_book(ptmp, fp, pcount); break;
+            case 4 : return_book(ptmp, fp, pcount); break;
+            case 5 : view_books(ptmp, fp, pcount); break;
+            case 6 : print_header(fp, pheader); break;
+            default : break;
+        }
+        if(input == 7)
+            break;
+    }
  
 
     
    
     return 0;
+}
+/*typedef struct{
+    char signature[5];
+    int version;
+    long data_count;
+    size_t record_size;
+    char reserved[32];
+}FileHeader;
+*/
+void print_header(FILE* fp, FileHeader* header){
+    fseek(fp, 0, SEEK_SET);
+    fread(header, sizeof(FileHeader), 1, fp);
+    printf("signature : %s\n", header->signature);
+    printf("version : %d\n", header->version);
+    printf("data_count : %ld\n", header->data_count);
+    printf("record_size : %zu\n",header->record_size);
+    printf("reserved : %s\n", header->reserved);
+
+    rewind(fp);
+    return;
+}
+
+void init_header(FILE* fp, FileHeader* fileheader){
+ 
+    memcpy(fileheader->signature, "MYDB", sizeof("MYDB"));
+    fileheader->data_count = 0;
+    fileheader->version = 1;
+    fileheader->record_size = sizeof(Book);
+    memcpy(fileheader->reserved, "none", sizeof("none"));
+    
+    rewind(fp);
+    fwrite(fileheader, sizeof(FileHeader), 1, fp);
+    rewind(fp);
+}
+
+int check_file_length(FILE* fp){
+    fseek(fp, sizeof(FileHeader), SEEK_SET);
+    long start = ftell(fp);
+    
+    fseek(fp, 0, SEEK_END);
+    long end = ftell(fp);
+
+    int count = (end - start)/sizeof(Book);
+
+    return count;
 }
 
 void copy_str(char* dst, char* src){
@@ -132,8 +154,8 @@ void safety_input(char* p){
     return;
 }
 
-void add_book(struct Book* ptmp, FILE* fp, int* pcount,int* p_struct_size ){
-    if(ptmp == NULL || fp == NULL|| *pcount>=SIZE){
+void add_book(Book* ptmp, FileHeader* pheader, FILE* fp, int* pcount){
+    if(ptmp == NULL || fp == NULL){
         return;
     }
     
@@ -153,39 +175,47 @@ void add_book(struct Book* ptmp, FILE* fp, int* pcount,int* p_struct_size ){
 
     ptmp->borrowed = 1;
 
-    (*pcount)++;
+    ++(*pcount);
+    ptmp->number = *pcount;
 
-    fwrite(ptmp, *p_struct_size, 1, fp);
+    pheader->data_count = *pcount;
+    fseek(fp, 0, SEEK_SET);
+    fwrite(pheader,sizeof(FileHeader), 1, fp);
 
-    // memcpy(*ptitle + *plen_books, tmp_title, sizeof(char) * (strlen(tmp_title)+1));
-    // memcpy(*pauthor + *plen_books, tmp_author, sizeof(char) * (strlen(tmp_author)+1));
-    // memcpy(*ppublisher + *plen_books, tmp_publisher, sizeof(char) * (strlen(tmp_publisher)+1));
-    //ptr가 NULL이므로 절대 하면 안됨
+    long offset = sizeof(FileHeader) + (sizeof(Book) * (*pcount -1));
+    fseek(fp, offset, SEEK_SET);
+    fwrite(ptmp, sizeof(Book), 1, fp);
+
+   
     
     return;
 }
 
 
-void view_books(struct Book* ptmp, int count){
+void view_books(Book* ptmp, FILE* fp, int* pcount){
 
-    for(int i=0; i<count; i++){
-        printf("[%d]\t", i+1);
-        printf("제목 : %-10s\t", ptr[i].name);
-        printf("저자 : %-10s\t", ptr[i].author);
-        printf("출판사 : %-10s\t", ptr[i].publisher);
-        ptr[i].borrowed == 1 ? printf("대출 가능") : printf("대출 불가능");
+    fseek(fp, sizeof(FileHeader), SEEK_SET);
+
+    for(int i=0; i<*pcount; i++){
+        fread(ptmp, sizeof(Book), 1, fp);
+
+        printf("[%ld]\t", ptmp->number);
+        printf("제목 : %-10s\t", ptmp->name);
+        printf("저자 : %-10s\t", ptmp->author);
+        printf("출판사 : %-10s\t", ptmp->publisher);
+        ptmp->borrowed == 1 ? printf("대출 가능") : printf("대출 불가능");
         putchar('\n');
     }
 
     return;
 }
 
-void find(struct Book* ptmp, FILE* fp, int count, int struct_size){
-    if(ptr == NULL || fp == NULL){
+void find(Book* ptmp, FILE* fp, int* pcount){
+    if(ptmp == NULL || fp == NULL){
         return;
     }
 
-    if(count <= 0){
+    if(*pcount <= 0){
         return;
     }
 
@@ -211,33 +241,35 @@ void find(struct Book* ptmp, FILE* fp, int count, int struct_size){
     
     if(ch<=0 || ch>=4)
         return;
-        
-    do{
-        if(1 == ch){
-            printf("책 제목을 입력하세요 : "); 
-        }else if(2 == ch){
-            printf("저자 이름을 입력하세요 : ");
-        }else if(3 == ch){
-            printf("출판사를 입력하세요 : ");
-        }else{
-            return;
-        }
+
     
-        safety_input(p);
+    if(1 == ch){
+        printf("책 제목을 입력하세요 : "); 
+    }else if(2 == ch){
+        printf("저자 이름을 입력하세요 : ");
+    }else if(3 == ch){
+        printf("출판사를 입력하세요 : ");
+    }else{
+        return;
+    }
 
-        if(!check_info(ptr, p, count, ch)){
-            puts("검색 결과가 없습니다.");
-        }
-    }while(!check_info(ptr, p,count, ch));
+    safety_input(p);
 
+    if(!check_info(ptmp,fp, p, *pcount, ch)){
+        puts("검색 결과가 없습니다.");
+        return;
+    }
+    
+    fseek(fp, sizeof(FileHeader), SEEK_SET);
     puts("=============================================================================================================================");
-    for(int i=0; i<count; i++){
+    for(int i=0; i<*pcount; i++){
         char* target = NULL;
+        fread(ptmp, sizeof(Book), 1, fp);
         if(ch == 1) target = ptmp->name;
         else if(ch == 2) target = ptmp->author;
         else if(ch == 3) target = ptmp->publisher;
         if(compare_str(tmp, target)){
-            printf("[%d]\t", i+1);
+            printf("[%ld]\t", ptmp->number);
             printf("제목 : %-10s\t", ptmp->name);
             printf("저자 : %-10s\t", ptmp->author);
             printf("출판사 : %-10s\t", ptmp->publisher);
@@ -251,15 +283,18 @@ void find(struct Book* ptmp, FILE* fp, int count, int struct_size){
 
 }
 
-bool check_info(struct Book* ptmp, char* pinput, int size, int ch){
+bool check_info(Book* ptmp, FILE* fp, char* pinput, int size, int ch){
     int cnt = 0;
-    if (ptr == NULL) return false;
+    if (ptmp == NULL) return false;
 
+    fseek(fp, sizeof(FileHeader), SEEK_SET);
+    
     for(int i=0; i<size; i++){
         char* target;
-        if(ch == 1) target = ptr[i].name;
-        else if(ch == 2) target = ptr[i].author;
-        else if(ch == 3) target = ptr[i].publisher;
+        fread(ptmp, sizeof(Book), 1, fp);
+        if(ch == 1) target = ptmp->name;
+        else if(ch == 2) target = ptmp->author;
+        else if(ch == 3) target = ptmp->publisher;
         if(compare_str(target, pinput)){
             cnt++;
         }
@@ -287,12 +322,14 @@ int compare_str(char* str1, char* str2){
             str1++;
             str2++;
         }
+
         return 1;
     }else{
         return 0;
     }
 
 }
+
 int safety_input_num(){
     int num;
     char* endPtr;
@@ -309,13 +346,14 @@ int safety_input_num(){
     return num;
 }
 
-void borrow_book(struct Book* ptr, int* pcount, int struct_size){
-    if(ptr == NULL || *pcount<0 || pcount == NULL ){
+
+void borrow_book(Book* ptmp, FILE* fp, int* pcount){
+    if(ptmp == NULL || *pcount<0 || pcount == NULL ){
         return;
     }
 
     puts("===== 대출할 책 검색 =====");
-    find(ptr, *pcount, struct_size);
+    find(ptmp, fp, pcount);
     int idx;
     
     do{
@@ -327,28 +365,33 @@ void borrow_book(struct Book* ptr, int* pcount, int struct_size){
         }
     }while(idx < 0 || idx >= *pcount);
     
+    long offset = sizeof(FileHeader) + sizeof(Book) * (idx);
 
-    printf("===== 대출 할 책의 정보 =====\n");
-    printf("제 목 : %-10s\n", ptr[idx].name);
-    printf("저 자 : %-10s\n", ptr[idx].author);
-    printf("출판사 : %-10s\n", ptr[idx].publisher);
+    fseek(fp, offset, SEEK_SET);
+    fread(ptmp, sizeof(Book), 1, fp);
+    printf("===== 반납 할 책의 정보 =====\n");
+    printf("제 목 : %-10s\n", ptmp->name);
+    printf("저 자 : %-10s\n", ptmp->author);
+    printf("출판사 : %-10s\n", ptmp->publisher);
     printf("==========================\n");
 
     printf("대출 하시겠습니까?\n[1] : 예\n[2] : 아니요\n입 력 : ");
     int ch2;
     ch2 = fgetc(stdin);
     while(getchar() != '\n');
-    if('1'==ch2) ptr[idx].borrowed=0;
+    if('1'==ch2) ptmp->borrowed=0;
+    fseek(fp, offset, SEEK_SET);
+    fwrite(ptmp, sizeof(Book), 1, fp);
 
 }
 
-void return_book(struct Book* ptr, int* pcount, int struct_size){
-    if(ptr == NULL){
+void return_book(Book* ptmp, FILE* fp, int* pcount){
+    if(ptmp == NULL || *pcount<0 || pcount == NULL ){
         return;
     }
 
     puts("===== 반납할 책 검색 =====");
-    find(ptr, *pcount, struct_size);
+    find(ptmp, fp, pcount);
     int idx;
     
     do{
@@ -360,17 +403,22 @@ void return_book(struct Book* ptr, int* pcount, int struct_size){
         }
     }while(idx < 0 || idx >= *pcount);
     
+    long offset = sizeof(FileHeader) + sizeof(Book) * (idx);
 
+    fseek(fp, offset, SEEK_SET);
+    fread(ptmp, sizeof(Book), 1, fp);
     printf("===== 반납 할 책의 정보 =====\n");
-    printf("제 목 : %-10s\n", ptr[idx].name);
-    printf("저 자 : %-10s\n", ptr[idx].author);
-    printf("출판사 : %-10s\n", ptr[idx].publisher);
+    printf("제 목 : %-10s\n", ptmp->name);
+    printf("저 자 : %-10s\n", ptmp->author);
+    printf("출판사 : %-10s\n", ptmp->publisher);
     printf("==========================\n");
 
     printf("반납 하시겠습니까?\n[1] : 예\n[2] : 아니요\n입 력 : ");
     int ch2;
     ch2 = fgetc(stdin);
     while(getchar() != '\n');
-    if('1'==ch2) ptr[idx].borrowed = 1;    
-    return;
+    if('1'==ch2) ptmp->borrowed=1;
+    fseek(fp, offset, SEEK_SET);
+    fwrite(ptmp, sizeof(Book), 1, fp);
+
 }
